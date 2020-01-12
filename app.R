@@ -100,76 +100,31 @@ server <- function(input, output, session) {
                           selected = methods[1]
         )
     })
-    
     output$method_1 <- renderPlot({
         dat <- datasetInput()
         y_var <- input$dependent
         x_var <- input$independent
-        formula <- paste(y_var, x_var, sep="~")
         formula_paste <-  paste(y_var, x_var, sep="~")
         if(input$algo1 == "Linear Regression"){
-            model <- lm(formula, data = dat)
-            dat %>%
-                ggplot() +
-                geom_point(aes(x=dat %>% pull(x_var), y= dat %>% pull(y_var))) +
-                geom_abline(intercept = model$coefficients[1], slope=model$coefficients[2]) +
-                labs(x=input$independent, y= input$dependent) + 
-                NULL
+          source("lin_reg.R")
+          lin_reg(formula = formula_paste, dat = dat, x_var = x_var, y_var = y_var)  
         }else if(input$algo1 == "Random Forest Regression"){
-            y_var <- input$dependent
-            x_var <- input$independent
-            formula_paste <-  paste(y_var, x_var, sep="~")
-            model <- randomForest(formula(formula_paste), data=dat)
-            x_values <- dat %>% pull(x_var)
-            x_range <- tibble(x_var = seq(min(x_values), max(x_values), 0.0001))
-            colnames(x_range) <- x_var
-            new_pred <- predict(model, x_range)
-            predicted <- bind_cols(x_range, tibble(prediction=new_pred))
-            dat %>%
-                ggplot() +
-                geom_point(aes(x=dat %>% pull(x_var), y= dat %>% pull(y_var))) +
-                geom_line(aes(x=predicted %>% pull(x_var), y=predicted %>% pull(prediction)), data= predicted) +
-                labs(x=input$independent, y= input$dependent) +
-                NULL
+          source("random_forest.R")
+          random_forest(formula = formula_paste, dat = dat, x_var = x_var, y_var = y_var)
         }
-        
-        
-        
        })
     output$method_2 <- renderPlot({
-        #method <- input$algo2
-
-        input$algo2 == "Linear Regression"
-        dat <- datasetInput()
-        y_var <- input$dependent
-        x_var <- input$independent
-        formula = paste(y_var, x_var, sep="~")
-        if(input$algo2 == "Linear Regression"){
-            model <- lm(formula, data = dat)
-            dat %>%
-                ggplot() +
-                geom_point(aes(x=dat %>% pull(x_var), y= dat %>% pull(y_var))) +
-                geom_abline(intercept = model$coefficients[1], slope=model$coefficients[2]) +
-                labs(x=input$independent, y= input$dependent) + 
-                NULL
-        }else if(input$algo2 == "Random Forest Regression"){
-            y_var <- input$dependent
-            x_var <- input$independent
-            formula_paste <-  paste(y_var, x_var, sep="~")
-            model <- randomForest(formula(formula_paste), data=dat)
-            x_values <- dat %>% pull(x_var)
-            x_range <- tibble(x_var = seq(min(x_values), max(x_values), 0.0001))
-            colnames(x_range) <- x_var
-            new_pred <- predict(model, x_range)
-            predicted <- bind_cols(x_range, tibble(prediction=new_pred))
-            dat %>%
-                ggplot() +
-                geom_point(aes(x=dat %>% pull(x_var), y= dat %>% pull(y_var))) +
-                geom_line(aes(x=predicted %>% pull(x_var), y=predicted %>% pull(prediction)), data= predicted) +
-                labs(x=input$independent, y= input$dependent) +
-                NULL
-        }
-  
+      dat <- datasetInput()
+      y_var <- input$dependent
+      x_var <- input$independent
+      formula_paste <-  paste(y_var, x_var, sep="~")
+      if(input$algo2 == "Linear Regression"){
+        source("lin_reg.R")
+        lin_reg(formula = formula_paste, dat = dat, x_var = x_var, y_var = y_var)  
+      }else if(input$algo2 == "Random Forest Regression"){
+        source("random_forest.R")
+        random_forest(formula = formula_paste, dat = dat, x_var = x_var, y_var = y_var)
+      }
     })
 }
 
