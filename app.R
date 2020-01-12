@@ -10,6 +10,8 @@
 library(shiny)
 library(tidyverse)
 library(datasets)
+library(randomForest)
+
 theme_set(theme_classic())
 # Define UI for application that draws a histogram
 ui <- fluidPage(
@@ -26,9 +28,12 @@ ui <- fluidPage(
             selectInput("dataset",
                         "Dataset:",
                         choices = c("mtcars", "iris")),
-            selectInput("algo",
-                        "Algorithm:",
-                        choices = c("Linear Regression", "KNN", "Random Forest Regression")),
+            selectInput("algo1",
+                        "Algorithm 1:",
+                        choices = c("Linear Regression", "Random Forest Regression")),
+            selectInput("algo2",
+                        "Algorithm 2:",
+                        choices = c("Linear Regression", "Random Forest Regression")),
             selectInput("dependent",
                         "Predictor:",
                         choices = "mpg"),
@@ -44,9 +49,8 @@ ui <- fluidPage(
 
         # Show a plot of the generated distribution
         splitLayout(
-           plotOutput("method_1")
-           # ,
-           # plotOutput("method_2")
+           plotOutput("method_1"),
+           plotOutput("method_2")
         )
     )
 )
@@ -62,6 +66,7 @@ server <- function(input, output, session) {
         dataset <- datasetInput()
         variables <- colnames(dataset)
     })
+    
     observe({
         dataset <- datasetInput()
         variables <- colnames(dataset)
@@ -78,39 +83,93 @@ server <- function(input, output, session) {
         )
     })
     
-    
-    output$summary <- renderPrint({
-        dataset <- datasetInput()
-        summary(dataset)
+    observe({
+        if(input$type=="Regression"){
+            methods = c("Linear Regression", "Random Forest Regression")
+        } else {
+            methods = c("Logistic Regression", "Random Forest Classification")
+        }
+        updateSelectInput(session, "algo1",
+                          label = "Select method",
+                          choices = methods,
+                          selected = methods[1]
+        )
+        updateSelectInput(session, "algo2",
+                          label = "Select method",
+                          choices = methods,
+                          selected = methods[1]
+        )
     })
     
     output$method_1 <- renderPlot({
         dat <- datasetInput()
         y_var <- input$dependent
         x_var <- input$independent
-        formula = paste(y_var, x_var, sep="~")
-        model <- lm(formula, data= dat)
-
-        dat %>%
-            ggplot() +
-            geom_point(aes(x=dat %>% pull(x_var), y= dat %>% pull(y_var))) +
-            geom_abline(intercept = model$coefficients[1], slope=model$coefficients[2]) +
-            labs(x=input$independent, y= input$dependent) + 
-            NULL
+        formula <- paste(y_var, x_var, sep="~")
+        formula_paste <-  paste(y_var, x_var, sep="~")
+        if(input$algo1 == "Linear Regression"){
+            model <- lm(formula, data = dat)
+            dat %>%
+                ggplot() +
+                geom_point(aes(x=dat %>% pull(x_var), y= dat %>% pull(y_var))) +
+                geom_abline(intercept = model$coefficients[1], slope=model$coefficients[2]) +
+                labs(x=input$independent, y= input$dependent) + 
+                NULL
+        }else if(input$algo1 == "Random Forest Regression"){
+            y_var <- input$dependent
+            x_var <- input$independent
+            formula_paste <-  paste(y_var, x_var, sep="~")
+            model <- randomForest(formula(formula_paste), data=dat)
+            x_values <- dat %>% pull(x_var)
+            x_range <- tibble(x_var = seq(min(x_values), max(x_values), 0.0001))
+            colnames(x_range) <- x_var
+            new_pred <- predict(model, x_range)
+            predicted <- bind_cols(x_range, tibble(prediction=new_pred))
+            dat %>%
+                ggplot() +
+                geom_point(aes(x=dat %>% pull(x_var), y= dat %>% pull(y_var))) +
+                geom_line(aes(x=predicted %>% pull(x_var), y=predicted %>% pull(prediction)), data= predicted) +
+                labs(x=input$independent, y= input$dependent) +
+                NULL
+        }
+        
+        
+        
        })
     output$method_2 <- renderPlot({
+        #method <- input$algo2
+
+        input$algo2 == "Linear Regression"
         dat <- datasetInput()
         y_var <- input$dependent
         x_var <- input$independent
         formula = paste(y_var, x_var, sep="~")
-        model <- lm(formula, data= dat)
-        
-        dat %>%
-            ggplot() +
-            geom_point(aes(x=dat %>% pull(x_var), y= dat %>% pull(y_var))) +
-            geom_abline(intercept = model$coefficients[1], slope=model$coefficients[2]) +
-            labs(x=input$independent, y= input$dependent) + 
-            NULL
+        if(input$algo2 == "Linear Regression"){
+            model <- lm(formula, data = dat)
+            dat %>%
+                ggplot() +
+                geom_point(aes(x=dat %>% pull(x_var), y= dat %>% pull(y_var))) +
+                geom_abline(intercept = model$coefficients[1], slope=model$coefficients[2]) +
+                labs(x=input$independent, y= input$dependent) + 
+                NULL
+        }else if(input$algo2 == "Random Forest Regression"){
+            y_var <- input$dependent
+            x_var <- input$independent
+            formula_paste <-  paste(y_var, x_var, sep="~")
+            model <- randomForest(formula(formula_paste), data=dat)
+            x_values <- dat %>% pull(x_var)
+            x_range <- tibble(x_var = seq(min(x_values), max(x_values), 0.0001))
+            colnames(x_range) <- x_var
+            new_pred <- predict(model, x_range)
+            predicted <- bind_cols(x_range, tibble(prediction=new_pred))
+            dat %>%
+                ggplot() +
+                geom_point(aes(x=dat %>% pull(x_var), y= dat %>% pull(y_var))) +
+                geom_line(aes(x=predicted %>% pull(x_var), y=predicted %>% pull(prediction)), data= predicted) +
+                labs(x=input$independent, y= input$dependent) +
+                NULL
+        }
+  
     })
 }
 
